@@ -1,25 +1,60 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import SocketContext from "../contexts/SocketContext";
 
 const Home = () => {
+  const { socket, setIsLeader } = useContext(SocketContext);
+  const navigate = useNavigate();
+
   const [name, setName] = useState("");
   const [roomID, setRoomID] = useState("");
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([]);
   const [roomAction, setRoomAction] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // generate a random 8 character id
+  const generateRoomID = () => {
+    const id = (Math.floor(Math.random() * 10e10) + Date.now()).toString(36);
+    return id;
   };
 
+  // form submit handler
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (roomAction === "create") {
+      let id = generateRoomID();
+      socket.emit("createRoom", { category, id }, (res) => {
+        console.log(res);
+        setIsLeader(true);
+        joinRoom(id);
+      });
+    }
+    if (roomAction === "join") {
+      joinRoom(roomID);
+    }
+  };
+
+  const joinRoom = (roomID) => {
+    console.log(roomID);
+    socket.emit("joinRoom", { name, roomID }, (res) => {
+      console.log(res);
+      if (res.status === 200) navigate(`room/${roomID}`);
+      else alert("Room Doesn't Exist");
+    });
+  };
+
+  // name handler
   const handleNameChange = (e) => {
     setName(e.target.value);
   };
 
+  // room id handler
   const handleRoomIDChange = (e) => {
     setRoomID(e.target.value);
   };
 
+  // category handler
   const handleCategoryChange = (e) => {
     console.log(e.target.value);
     setCategory(e.target.value);
